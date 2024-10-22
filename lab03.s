@@ -99,8 +99,52 @@ outShowRowLoop:
 
 rgb888_to_rgb565:
 # ----------------------------------------
-# Write your code here.
-# You may move the "return" instruction (jalr zero, ra, 0).
-    jalr zero, ra, 0
+# Υπορουτίνα για μετατροπή εικόνας από RGB888 σε RGB565
+# a0 - Διεύθυνση αρχής εισόδου (RGB888)
+# a1 - Πλάτος της εικόνας (pixels)
+# a2 - Ύψος της εικόνας (pixels)
+# a3 - Διεύθυνση αρχής εξόδου (RGB565)
+# Δεν επιστρέφει κάποια τιμή.
 
+    add  t0, zero, zero       # Καταχωρητής pixel counter (t0 = 0)
+    mul  t2, a1, a2           # t2 = πλάτος * ύψος -> συνολικός αριθμός pixels
+
+convert_loop:
+    beq  t0, t2, end_convert_loop  # Έξοδος αν έχουμε μετατρέψει όλα τα pixels
+
+    # Φόρτωση των 3 bytes RGB888 (Red, Green, Blue)
+    lbu  t3, 0(a0)            # Φόρτωση κόκκινου (Red) στο t3
+    lbu  t4, 1(a0)            # Φόρτωση πράσινου (Green) στο t4
+    lbu  t5, 2(a0)            # Φόρτωση μπλε (Blue) στο t5
+
+    # Μετατροπή του Red από 8-bit σε 5-bit
+    srli t3, t3, 3            # Red = Red >> 3
+
+    # Μετατροπή του Green από 8-bit σε 6-bit
+    srli t4, t4, 2            # Green = Green >> 2
+
+    # Μετατροπή του Blue από 8-bit σε 5-bit
+    srli t5, t5, 3            # Blue = Blue >> 3
+
+    # Συνδυασμός των Red, Green, Blue σε 16-bit μορφή RGB565
+    slli t3, t3, 11           # Τοποθέτηση του Red στα πιο σημαντικά 5 bits
+    slli t4, t4, 5            # Τοποθέτηση του Green στα bits 5-10
+    or   t3, t3, t4           # Συνδυασμός Red και Green
+    or   t3, t3, t5           # Συνδυασμός με Blue
+
+    # Αποθήκευση του 16-bit αποτελέσματος στη διεύθυνση RGB565
+    sh   t3, 0(a3)            # Αποθήκευση 16-bit στη νέα εικόνα
+
+    # Μετακίνηση δείκτη στη μνήμη εισόδου (RGB888) και εξόδου (RGB565)
+    addi a0, a0, 3            # 3 bytes για κάθε pixel στη RGB888
+    addi a3, a3, 2            # 2 bytes για κάθε pixel στη RGB565
+
+    # Επόμενο pixel
+    addi t0, t0, 1            # Αύξηση του pixel counter
+    j    convert_loop          # Επανάληψη του βρόχου για το επόμενο pixel
+
+end_convert_loop:
+    jalr zero, ra, 0          # Επιστροφή στη κύρια ρουτίνα
+
+# ----------------------------------------
 
